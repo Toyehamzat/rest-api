@@ -1,14 +1,36 @@
 import { NextResponse } from "next/server";
-
+import { Limitier } from "../config/limiter";
 const DATA_SOURCE_URL = "https://jsonplaceholder.typicode.com/todos";
 const API_KEY: string = process.env.DATA_API_KEY as string;
 
-export async function GET() {
+export async function GET(request: Request) {
   const res = await fetch(DATA_SOURCE_URL);
 
   const todos: [] = await res.json();
 
-  return NextResponse.json(todos);
+  const origin = request.headers.get("origin");
+
+  const Reamaining = await Limitier.removeTokens(1);
+  console.log("Reamaining: ", Reamaining);
+
+  if (Reamaining < 0) {
+    return new NextResponse(null, {
+      status: 429,
+      statusText: "Too many request",
+      headers: {
+        "access-control-allow-origin": origin || "*",
+        "content-type": "text/plain",
+      },
+    });
+  }
+  return new NextResponse(JSON.stringify(todos), {
+    status: 200,
+    statusText: "OK",
+    headers: {
+      "access-control-allow-origin": origin || "*",
+      "content-type": "application/json",
+    },
+  });
 }
 
 export async function DELETE(request: Request) {
